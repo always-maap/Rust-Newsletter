@@ -24,7 +24,7 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
 
     let body = "name=mohammad&email=mohammadali.ap.2000%40gmail.com";
     let response = client
-        .post(&format!("{}/subscribe", &address))
+        .post(&format!("{}/subscriptions", &address))
         .header("Content-Type", "application/x-www-form-urlencoded")
         .body(body)
         .send()
