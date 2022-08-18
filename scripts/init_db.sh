@@ -19,6 +19,7 @@ DB_USER=${POSTGRES_USER:=postgres}
 DB_PASSWORD="${POSTGRES_PASSWORD:=password}"
 DB_NAME="${POSTGRES_DB:=newsletter}"
 DB_PORT="${POSTGRES_PORT:=5432}"
+DB_HOST="${POSTGRES_HOST:=localhost}"
 
 if [[ -z "${SKIP_DOCKER}" ]]
 then
@@ -30,6 +31,12 @@ then
     -d postgres \
     postgres -N 1000
 fi
+
+export PGPASSWORD="${DB_PASSWORD}"
+until psql -h "localhost" -p "${DB_PORT}" -U "${DB_USER}" -d "postgres" -c '\q'; do
+  >&2 echo "Postgres is unavailable - sleeping"
+  sleep 1
+done
 
 >&2 echo "Postgres is up and running on port ${DB_PORT} - running migrations now!"
 
