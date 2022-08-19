@@ -1,6 +1,11 @@
 use std::net::TcpListener;
 
-use newsletter::configuration::{get_configuration, DatabaseSettings};
+use newsletter::{
+    configuration::{get_configuration, DatabaseSettings},
+    startup::run,
+    telementry::{get_subscriber, init_subscriber},
+};
+use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 
@@ -83,12 +88,19 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
     }
 }
 
+static TRACING: Lazy<()> = Lazy::new(|| {
+    let subscriber = get_subscriber("test".into(), "debug".into());
+    init_subscriber(subscriber);
+});
+
 pub struct TestApp {
     pub address: String,
     pub db_pool: PgPool,
 }
 
 async fn spawn_app() -> TestApp {
+    Lazy::force(&TRACING);
+
     let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind to port");
     let port = listener.local_addr().unwrap().port();
     let address = format!("http://127.0.0.1:{}", port);
@@ -97,8 +109,7 @@ async fn spawn_app() -> TestApp {
     configuration.database.database_name = Uuid::new_v4().to_string();
     let connection_pool = configure_database(&configuration.database).await;
 
-    let server =
-        newsletter::startup::run(listener, connection_pool.clone()).expect("Failed to run app");
+    let server = run(listener, connection_pool.clone()).expect("Failed to run app");
 
     let _ = tokio::spawn(server);
 
